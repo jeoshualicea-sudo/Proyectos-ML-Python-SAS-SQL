@@ -1,0 +1,141 @@
+# By M en C. Jeoshua Licea, this mini project explain how to implement polynomical regressions using a range of degrees and compare their
+# score in order to see which model is ideal, and which ones are unferfitting or undefitting, my construction is using arrays and vectorization.
+#In my LinkedIn you will find the documentation of the code here writed.
+
+%matplotlib inline
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+
+np.random.seed(0)
+
+n = 15
+x = np.linspace(0, 10, n) + np.random.randn(n) / 5
+y = np.sin(x) + x / 6 + np.random.randn(n) / 10
+
+X_train, X_test, y_train, y_test = train_test_split(
+    x, y, random_state=0
+)
+
+def intro():
+    plt.figure()
+    plt.scatter(X_train, y_train, label='training data')
+    plt.scatter(X_test, y_test, label='test data')
+    plt.legend(loc=4)
+    plt.show()
+
+intro()
+
+def answer_one():
+    import numpy as np
+    from sklearn.linear_model import LinearRegression
+    from sklearn.preprocessing import PolynomialFeatures
+    
+    # Valores donde queremos hacer las 100 predicciones
+    x_p = np.linspace(0, 10, 100).reshape(-1, 1)
+    
+    # Dividir los datos originales
+    X_train, X_test, y_train, y_test = train_test_split(
+        x, y, random_state=0)
+    # Convertir a vector
+    X_train = X_train.reshape(-1, 1)
+    X_test = X_test.reshape(-1, 1)
+    # Arreglo
+    degree_predictions = np.zeros((4, 100))
+    # Variable de la fila
+    j = 0
+    for i in [1, 3, 6, 9]:   
+        poly = PolynomialFeatures(degree=i)
+        X_train_poly = poly.fit_transform(X_train)
+        x_p_poly = poly.transform(x_p)
+        polireg = LinearRegression().fit(
+            X_train_poly, 
+            y_train
+        )
+        degree_predictions[j, :] = polireg.predict(x_p_poly)
+        j += 1
+    return degree_predictions
+    
+answer_one()
+def answer_two():
+    from sklearn.linear_model import LinearRegression
+    from sklearn.preprocessing import PolynomialFeatures
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        x, y, random_state=0
+    )
+ 
+    X_train = X_train.reshape(-1, 1)
+    X_test = X_test.reshape(-1, 1)
+    
+    # Arreglos para guardar R² de grados 0 a 9
+    r2_train = np.zeros(10)
+    r2_test = np.zeros(10)
+    
+    for j, i in enumerate(range(10)):
+        poly = PolynomialFeatures(degree=i)
+        X_train_poly = poly.fit_transform(X_train)
+        X_test_poly = poly.transform(X_test)
+        # Entrenar modelo
+        polireg = LinearRegression().fit(
+            X_train_poly,
+            y_train)
+        # Guardar R²
+        r2_train[j] = polireg.score(
+            X_train_poly,
+            y_train)
+        
+        r2_test[j] = polireg.score(
+            X_test_poly,
+            y_test)
+    
+    return r2_train, r2_test
+
+
+answer_two()
+def answer_three():
+    r2_train, r2_test = answer_two()
+    grado = np.arange(10)
+    plt.figure(figsize=(8, 5))
+    plt.plot(grado, r2_train, marker='o', label='Training R²')
+    plt.plot(grado, r2_test, marker='o', label='Test R²')
+    plt.xlabel('Polynomial Degree')
+    plt.ylabel('R² Score')
+    plt.title('Training vs Test R²')
+    plt.xticks(grado)
+    plt.legend()
+    plt.grid()
+    plt.show()       
+    plt.show()
+    print (grado)
+    return print(
+    f'Underfitted Grado cero: {r2_test[0]:.3f}, '
+    f'Overfitted Grado nueve: {r2_test[9]:.3f}, '
+    f'Good generalization Grado sexto: {r2_test[6]:.3f}')
+
+answer_three()
+
+def answer_four():
+    from sklearn.preprocessing import PolynomialFeatures
+    from sklearn.linear_model import Lasso, LinearRegression
+    from sklearn.metrics import r2_score
+
+    poly = PolynomialFeatures(degree=12)
+    X_poly = poly.fit_transform(x.reshape(-1, 1))
+    # Entrenamiento y prueba
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_poly, y, random_state=0
+    )
+    # Lineal Regresion
+    linreg = LinearRegression()
+    linreg.fit(X_train, y_train)
+    linreg_r2 = linreg.score(X_test, y_test)
+    # Lasso Regresion
+    lasso = Lasso(alpha=0.01, max_iter=10000, tol=0.1)
+    lasso.fit(X_train, y_train)
+    lasso_r2 = lasso.score(X_test, y_test)
+    print('(R2 Lineal, R2 Lasso)')
+    return (linreg_r2, lasso_r2) 
+
+answer_four()
