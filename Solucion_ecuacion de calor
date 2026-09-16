@@ -1,4 +1,4 @@
-#Solución ecuación de calor por modulos Men C.  JEOSHUA LICEA GARCIA ICN-UNAM
+#Solución ecuación de calor por modulos M en C.  JEOSHUA LICEA GARCIA ICN-UNAM
 #contacto jeoshua.licea@correo.nucleares.unam.mx
 import numpy as np
 import matplotlib.pyplot as plt
@@ -6,8 +6,7 @@ import matplotlib.pyplot as plt
 Nx = 100
 xr = 1
 xl = 0
-dx = (xr - xl) / Nx
-
+dx = (xr - xl) / (Nx-1)
 c = 900
 rho = 2700
 k = 210
@@ -17,27 +16,25 @@ dtout = 5
 tfin = 60
 cfl = 0.01
 
-x = np.linspace(xl, xr, Nx + 2)
+x = np.arange(xl-dx, xr+2*dx, dx)
 
-T = [0.0 for _ in range(Nx + 2)]
-TP = [0.0 for _ in range(Nx + 2)]
+T = [0.0 for _ in range(Nx+2)]
+TP = [0.0 for _ in range(Nx+2)] #con las fantasmas
 
 def timestep():  #PASO DE TIEMPO
     return cfl * dx**2 * rho * c / k
 
 def inittemperature(T): #CONDICION INICIAL
-    for i in range(Nx):
+    for i in range(1,Nx+1):
         T[i] = 100
 
-def boundary(T):   #FRONTERAS
+def boundary(T):   #FRONTERAS sobre las fantasmas
     T[0] = 0
     T[Nx + 1] = 0
 
 def difusion(T, TP, cfl):  #METODO NUMERICO DE DIFERENCIA FINITA
-    for i in range(1, Nx + 1):
+    for i in range(1, Nx + 1): #puras celdas reales
         TP[i] = T[i] + cfl * (T[i + 1] + T[i - 1] - 2 * T[i])
-
-    boundary(TP)
     return TP
 
 def step(T, TP, cfl, t, dt, it, tfin, dtout): #PASO Y ESCRITURA A DISCO
@@ -47,12 +44,9 @@ def step(T, TP, cfl, t, dt, it, tfin, dtout): #PASO Y ESCRITURA A DISCO
     while t < tfin:
         TP = difusion(T, TP, cfl)
         T = TP.copy()
-
         boundary(T)
-
         t += dt
         it += 1
-
         if t >= next_output:
             CU.append(T.copy())
             next_output += dtout
@@ -63,18 +57,39 @@ def step(T, TP, cfl, t, dt, it, tfin, dtout): #PASO Y ESCRITURA A DISCO
 def output(CU, x, dtout): #GRAFICADOR
     for i, snap in enumerate(CU):
         plt.figure(figsize=(8, 5))
-        plt.plot(x, snap)
-        plt.xlabel('x')
-        plt.ylabel('T')
-        plt.title(f'Temperatura (t = {i * dtout:.2f} s)')
+        #plt.plot(x, snap)
+        plt.plot(x[1:Nx+1], snap[1:Nx+1])
+        plt.xlabel("Posición x (m)")
+        plt.ylabel("Temperatura T (°C)")
+        plt.title(f'Perfil de temperatura T(x,t) a t = {i * dtout:.2f} s')
         plt.grid()
         plt.show()
 
 dt = timestep()
-
 inittemperature(T)
 boundary(T)
-
 T, TP, t, it, CU = step(T, TP, cfl, t, dt, it, tfin, dtout)
-
 output(CU, x, dtout)
+
+#EXACTA
+modes = np.arange(1, 1000, 2)
+alpha = k / (c * rho)
+T_analytic = np.zeros_like(x)
+
+for m in modes:
+    T_analytic += (
+        (1.0 / m)
+        * np.sin(m * np.pi * x / L)
+        * np.exp(-alpha * (m * np.pi / L) ** 2 * tfin)
+    )
+
+T_analytic *= 400.0 / np.pi
+plt.figure(figsize=(8, 5))
+plt.plot(x, T_analytic, color="firebrick", lw=2, label=f"Analítico (t = {tfin}s)")
+plt.title(f"Perfil de Temperatura T(x, t) a t = {tfin} s")
+plt.xlabel("Posición x (m)")
+plt.ylabel("Temperatura T (°C)")
+plt.xlim(0, L)
+plt.grid(True, linestyle="--", alpha=0.6)
+plt.legend()
+plt.show()
